@@ -72,7 +72,7 @@ Agent가 정상적으로 실행되고 Live Client API에 연결되면 다음과 
 [STATUS] Connected | polls: 19 | objective events: 2 | last event id: 3
 ```
 오브젝트 이벤트가 감지되면 다음과 같이 출력됩니다.
-```json
+```bash
 [OBJECTIVE EVENT] {
   eventId: 25,
   eventName: 'DragonKill',
