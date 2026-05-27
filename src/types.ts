@@ -1,3 +1,16 @@
+export type LiveClientTeam = "ORDER" | "CHAOS";
+
+export type LeagueStudioTeam = "blue" | "red" | "unknown";
+
+export type LiveClientPlayer = {
+    summonerName?: string;
+    riotId?: string;
+    riotIdGameName?: string;
+    riotIdTagLile?: string;
+    championName?: string;
+    team?: LiveClientTeam;
+};
+
 export type LiveClientEvent = {
   EventID: number;
   EventName: string;
@@ -11,9 +24,10 @@ export type LiveClientEvent = {
 };
 
 export type LiveClientAllGameData = {
-  events: {
-    Events: LiveClientEvent[];
-  };
+    allPlayers: LiveClientPlayer[];
+    events: {
+        Events: LiveClientEvent[];
+    };
 };
 
 export type ObjectiveEvent = {
@@ -21,5 +35,6 @@ export type ObjectiveEvent = {
   eventName: string;
   eventTime: number;
   killerName?: string;
+  team: LeagueStudioTeam;
   dragonType?: string;
 };

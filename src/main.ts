@@ -23,7 +23,7 @@ async function pollLiveClientData() {
         lastSuccessAt = new Date();
         lastErrorMessage = null;
 
-        const objectiveEvents = parseObjectiveEvents(data.events.Events);
+        const objectiveEvents = parseObjectiveEvents(data.events.Events, data.allPlayers);
         const newEvents = objectiveEvents.filter(
         (event) => event.eventId > lastEventId
         );
