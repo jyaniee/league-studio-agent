@@ -5,8 +5,10 @@ import type {
     LeagueStudioTeam, 
     LiveClientPlayer,
     ObjectiveRawEventName,
-    ObjectiveType 
+    ObjectiveType,
+    DragonType, 
 } from "./types.js";
+import { unescape } from "node:querystring";
 
 const OBJECTIVE_EVENT_NAMES = new Set<ObjectiveRawEventName>([
   "DragonKill",
@@ -115,6 +117,28 @@ function toObjectiveType(eventName: ObjectiveRawEventName): ObjectiveType {
     }
 }
 
+function toDragonType(rawDragonType?: string): DragonType | undefined {
+    switch (rawDragonType) {
+        case "Air":
+            return "cloud";
+        case "Fire":
+            return "infernal";
+        case "Water":
+            return "ocean";
+        case "Earth":
+            return "mountain";
+        case "Hextech":
+            return "hextech";
+        case "Chemtech":
+            return "chemtech";
+        case "Elder":
+            return "elder";
+        default:
+            return undefined;
+    }
+}
+
+
 function toBoolean(value?: string): boolean | undefined {
     if (value === "True") {
         return true;
@@ -143,7 +167,8 @@ export function parseObjectiveEvents(
             rawEventName,
             team: resolveKillerTeam(event.KillerName, players),
             killerName: event.KillerName,
-            dragonType: event.DragonType,
+            dragonType: toDragonType(event.DragonType),
+            rawDragonType: event.DragonType,
             stolen: toBoolean(event.Stolen),
         };
     });

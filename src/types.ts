@@ -14,6 +14,15 @@ export type ObjectiveType =
     | "herald"
     | "voidgrub";
 
+export type DragonType =
+    | "cloud"
+    | "infernal"
+    | "mountain"
+    | "ocean"
+    | "hextech"
+    | "chemtech"
+    | "elder";
+
 export type AgentObjectiveEvent = {
     eventId: number;
     eventTime: number;
@@ -22,6 +31,7 @@ export type AgentObjectiveEvent = {
     team: LeagueStudioTeam;
     killerName?: string;
     dragonType?: string;
+    rawDragonType?: string;
     stolen?: boolean;
 };
 
