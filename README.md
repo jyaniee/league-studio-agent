@@ -1,11 +1,8 @@
 # League Studio Agent
 
-League Studio Agent는 League Studio 프로젝트에서 사용하는 플레이어 측 데이터 수집기입니다.
+League Studio Agent는 [League Studio 프로젝트](https://github.com/jyaniee/league-studio)에서 사용하는 플레이어 측 데이터 수집기입니다.
 
 이 Agent는 선수 또는 테스트 클라이언트 PC에서 실행되며, Riot Live Client Data API를 통해 로컬 게임 클라이언트의 실시간 데이터를 읽고 필요한 이벤트 데이터를 수집합니다.
-
-메인 프로젝트 리포지토리:  
-https://github.com/jyaniee/league-studio
 
 ## Purpose
 
