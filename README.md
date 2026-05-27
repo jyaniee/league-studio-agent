@@ -136,5 +136,4 @@ Agent가 정상적으로 실행되고 Live Client API에 연결되면 다음과 
 | `Elder` | `elder` | 장로 드래곤 |
 
 ## Related Repository
-League Studio 메인 리포지토리:
-https://github.com/jyaniee/league-studio
+[League Studio](https://github.com/jyaniee/league-studio)
