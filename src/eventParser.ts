@@ -18,5 +18,6 @@ export function parseObjectiveEvents(
       eventTime: event.EventTime,
       killerName: event.KillerName,
       dragonType: event.DragonType,
+      stolen: event.Stolen,
     }));
 }
