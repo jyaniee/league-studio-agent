@@ -2,6 +2,30 @@ export type LiveClientTeam = "ORDER" | "CHAOS";
 
 export type LeagueStudioTeam = "blue" | "red" | "unknown";
 
+export type ObjectiveRawEventName =
+    | "DragonKill"
+    | "BaronKill"
+    | "HeraldKill"
+    | "HordeKill";
+
+export type ObjectiveType =
+    | "dragon"
+    | "baron"
+    | "herald"
+    | "voidgrub";
+
+export type AgentObjectiveEvent = {
+    eventId: number;
+    eventTime: number;
+    objective: ObjectiveType;
+    rawEventName: ObjectiveRawEventName;
+    team: LeagueStudioTeam;
+    killerName?: string;
+    dragonType?: string;
+    stolen?: boolean;
+};
+
+
 export type LiveClientPlayer = {
     summonerName?: string;
     riotId?: string;
@@ -30,6 +54,7 @@ export type LiveClientAllGameData = {
     };
 };
 
+/*
 export type ObjectiveEvent = {
   eventId: number;
   eventName: string;
@@ -38,3 +63,4 @@ export type ObjectiveEvent = {
   team: LeagueStudioTeam;
   dragonType?: string;
 };
+*/

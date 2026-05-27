@@ -1,6 +1,14 @@
-import type { LiveClientEvent, ObjectiveEvent, LeagueStudioTeam, LiveClientPlayer } from "./types.js";
+import { resolve } from "node:dns";
+import type { 
+    LiveClientEvent, 
+    AgentObjectiveEvent, 
+    LeagueStudioTeam, 
+    LiveClientPlayer,
+    ObjectiveRawEventName,
+    ObjectiveType 
+} from "./types.js";
 
-const OBJECTIVE_EVENT_NAMES = new Set([
+const OBJECTIVE_EVENT_NAMES = new Set<ObjectiveRawEventName>([
   "DragonKill",
   "BaronKill",
   "HeraldKill",
@@ -88,19 +96,55 @@ function resolveKillerTeam(
     return "unknown";
 }
 
+function isObjectiveRawEventName(
+    eventName: string
+): eventName is ObjectiveRawEventName {
+    return OBJECTIVE_EVENT_NAMES.has(eventName as ObjectiveRawEventName);
+}
+
+function toObjectiveType(eventName: ObjectiveRawEventName): ObjectiveType {
+    switch (eventName) {
+        case "DragonKill":
+            return "dragon";
+        case "BaronKill":
+            return "baron";
+        case "HeraldKill":
+            return "herald";
+        case "HordeKill":
+            return "voidgrub";
+    }
+}
+
+function toBoolean(value?: string): boolean | undefined {
+    if (value === "True") {
+        return true;
+    }
+
+    if (value === "False") {
+        return false;
+    }
+
+    return undefined;
+}
+
 export function parseObjectiveEvents(
   events: LiveClientEvent[],
   players: LiveClientPlayer[]
-): ObjectiveEvent[] {
+): AgentObjectiveEvent[] {
   return events
-    .filter((event) => OBJECTIVE_EVENT_NAMES.has(event.EventName))
-    .map((event) => ({
-      eventId: event.EventID,
-      eventName: event.EventName,
-      eventTime: event.EventTime,
-      killerName: event.KillerName,
-      team: resolveKillerTeam(event.KillerName, players),
-      dragonType: event.DragonType,
-      stolen: event.Stolen,
-    }));
+    .filter((event) => isObjectiveRawEventName(event.EventName))
+    .map((event) => {
+        const rawEventName = event.EventName as ObjectiveRawEventName;
+
+        return {
+            eventId: event.EventID,
+            eventTime: event.EventTime,
+            objective: toObjectiveType(rawEventName),
+            rawEventName,
+            team: resolveKillerTeam(event.KillerName, players),
+            killerName: event.KillerName,
+            dragonType: event.DragonType,
+            stolen: toBoolean(event.Stolen),
+        };
+    });
 }
