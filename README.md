@@ -17,10 +17,13 @@ League Studio는 리그 오브 레전드 비공식 경기나 학교 대회에서
 - 로컬 Live Client Data API 호출
 - `allgamedata` 응답 수집
 - `DragonKill`, `BaronKill`, `HeraldKill`, `HordeKill` 등 오브젝트 이벤트 추출
+- `killerName` 기반 오브젝트 획득 팀 판별
+- Live Client API 원본 이벤트를 서버 전송용 이벤트 형식으로 변환
+- 드래곤 타입 정규화
 - Agent 실행 상태 로그 출력
-- 추후 League Studio Server로 이벤트 데이터 전송
+- 옵션 기반 League Studio Server 이벤트 전송
 
-현재 단계에서는 서버 전송 전에 콘솔 출력 기반으로 이벤트 수집 가능 여부를 검증합니다.
+현재 단계에서는 콘솔 출력으로 이벤트 수집 결과를 확인할 수 있으며, `SEND_TO_SERVER=true` 설정 시 League Studio Server로 이벤트 전송을 시도합니다.
 
 ## Data Source
 
@@ -31,7 +34,7 @@ https://127.0.0.1:2999/liveclientdata/allgamedata
 ```
 이 API는 리그 오브 레전드 게임 클라이언트가 실행 중이고, 실제 게임에 접속해 있는 상태에서 사용할 수 있습니다.
 
-## Getting Stated
+## Getting Started
 ### 1. Install dependencies
 ```bash
 pnpm install
@@ -42,7 +45,7 @@ pnpm install
 cp .env.example .env
 ```
 Windows PowerShell에서는 아래 명령어를 사용할 수 있습니다.
-```PowerShell
+```powershell
 Copy-Item .env.example .env
 ```
 ### 3. Run Agent
@@ -56,13 +59,22 @@ LIVE_CLIENT_API_URL=https://127.0.0.1:2999/liveclientdata/allgamedata
 POLL_INTERVAL_MS=1000
 STATUS_LOG_INTERVAL_MS=10000
 ALLOW_INSECURE_LOCAL_TLS=true
+
+SEND_TO_SERVER=false
+SERVER_INGEST_URL=http://localhost:3001/agent/objective-events
+MATCH_ID=local-test-match
+AGENT_ID=player-agent-1
 ```
-| Name                       | Description                                           |
-| -------------------------- | ----------------------------------------------------- |
-| `LIVE_CLIENT_API_URL`      | Live Client Data API endpoint                         |
-| `POLL_INTERVAL_MS`         | API polling interval in milliseconds                  |
-| `STATUS_LOG_INTERVAL_MS`   | Status log output interval in milliseconds            |
-| `ALLOW_INSECURE_LOCAL_TLS` | Allows local HTTPS certificate bypass for development |
+| Name | Description |
+| --- | --- |
+| `LIVE_CLIENT_API_URL` | Riot Live Client Data API의 `allgamedata` 엔드포인트 |
+| `POLL_INTERVAL_MS` | Live Client Data API를 조회하는 주기입니다. 단위는 ms입니다. |
+| `STATUS_LOG_INTERVAL_MS` | Agent 실행 상태 로그를 출력하는 주기입니다. 단위는 ms입니다. |
+| `ALLOW_INSECURE_LOCAL_TLS` | 로컬 Live Client API 호출 시 HTTPS 인증서 검증을 우회할지 여부입니다. |
+| `SEND_TO_SERVER` | 수집한 오브젝트 이벤트를 League Studio Server로 전송할지 여부입니다. |
+| `SERVER_INGEST_URL` | League Studio Server의 Agent 이벤트 수신 엔드포인트입니다. |
+| `MATCH_ID` | 서버로 전송되는 이벤트 payload에 포함할 경기 식별자입니다. |
+| `AGENT_ID` | 서버로 전송되는 이벤트 payload에 포함할 Agent 식별자입니다. |
 
 
 ## Example Output
@@ -74,13 +86,54 @@ Agent가 정상적으로 실행되고 Live Client API에 연결되면 다음과 
 오브젝트 이벤트가 감지되면 다음과 같이 출력됩니다.
 ```bash
 [OBJECTIVE EVENT] {
-  eventId: 25,
-  eventName: 'DragonKill',
-  eventTime: 552.2943725585938,
+  eventId: 14,
+  eventTime: 834.3678588867188,
+  objective: 'dragon',
+  rawEventName: 'DragonKill',
+  team: 'blue',
   killerName: 'JhAn',
-  dragonType: 'Water'
+  dragonType: 'hextech',
+  rawDragonType: 'Hextech',
+  stolen: false
 }
 ```
+공허 유충 이벤트는 Live Client API에서 `HordeKill`로 전달되며, Agent 내부에서는 `voidgrub`으로 변환됩니다.
+```bash
+[OBJECTIVE EVENT] {
+  eventId: 3,
+  eventTime: 76.77731323242188,
+  objective: 'voidgrub',
+  rawEventName: 'HordeKill',
+  team: 'blue',
+  killerName: 'JhAn',
+  dragonType: undefined,
+  rawDragonType: undefined,
+  stolen: false
+}
+```
+`SEND_TO_SERVER=true`인 경우 이벤트 전송에 성공하면 다음과 같은 로그가 출력됩니다.
+```
+[SEND] Objective event sent to server: 14
+```
+
+## Event Mapping
+| Live Client Event | Agent Objective Type | 설명 |
+| --- | --- | --- |
+| `DragonKill` | `dragon` | 드래곤 처치 이벤트 |
+| `BaronKill` | `baron` | 바론 처치 이벤트 |
+| `HeraldKill` | `herald` | 협곡의 전령 처치 이벤트 |
+| `HordeKill` | `voidgrub` | 공허 유충 처치 이벤트 |
+
+## Dragon Type Mapping
+| Live Client DragonType | Agent DragonType | 설명 |
+| --- | --- | --- |
+| `Air` | `cloud` | 바람 드래곤 |
+| `Fire` | `infernal` | 화염 드래곤 |
+| `Earth` | `mountain` | 대지 드래곤 |
+| `Water` | `ocean` | 바다 드래곤 |
+| `Hextech` | `hextech` | 마법공학 드래곤 |
+| `Chemtech` | `chemtech` | 화학공학 드래곤 |
+| `Elder` | `elder` | 장로 드래곤 |
 
 ## Related Repository
 League Studio 메인 리포지토리:
