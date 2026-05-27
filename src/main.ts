@@ -1,4 +1,5 @@
 import { config } from "./config.js";
+import { sendObjectiveEventToServer } from "./serverClient.js";
 
 if (config.allowInsecureLocalTls) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -31,6 +32,25 @@ async function pollLiveClientData() {
         for (const event of newEvents) {
             totalObjectiveEventCount += 1;
             console.log("[OBJECTIVE EVENT]", event);
+
+            if (config.sendToServer) {
+                try {
+                    await sendObjectiveEventToServer({
+                        serverIngestUrl: config.serverIngestUrl,
+                        matchId: config.matchId,
+                        agentId: config.agentId,
+                        event,
+                    });
+
+                    console.log(`[SEND] Objective event sent to server: ${event.eventId}`);
+                } catch (error) {
+                    console.error(
+                        "[SEND ERROR]",
+                        error instanceof Error ? error.message : String(error)
+                    );
+                }
+            }
+
             lastEventId = Math.max(lastEventId, event.eventId);
         }
     } catch (error) {
@@ -67,9 +87,13 @@ function logStatus() {
 }
 
 console.log("[League Studio Agent] started");
-console.log(`[Live Client API ${config.liveClientApiUrl}`);
+console.log(`[Live Client API] ${config.liveClientApiUrl}`);
 console.log(`[Poll Interval] ${config.pollIntervalMs}ms`);
 console.log(`[Status Log Interval] ${config.statusLogIntervalMs}ms`);
+console.log(`[Send to Server] ${config.sendToServer}`);
+console.log(`[Server Ingest URL] ${config.serverIngestUrl}`);
+console.log(`[Match ID] ${config.matchId}`);
+console.log(`[Agent ID] ${config.agentId}`);
 
 setInterval(pollLiveClientData, config.pollIntervalMs);
 setInterval(logStatus, config.statusLogIntervalMs);

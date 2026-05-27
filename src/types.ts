@@ -74,3 +74,10 @@ export type ObjectiveEvent = {
   dragonType?: string;
 };
 */
+
+export type AgentObjectiveEventPayload = {
+    matchId: string;
+    agentId: string;
+    sentAt: string;
+    event: AgentObjectiveEvent;
+};
