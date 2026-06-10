@@ -15,10 +15,15 @@ const OBJECTIVE_EVENT_NAMES = new Set<ObjectiveRawEventName>([
   "BaronKill",
   "HeraldKill",
   "HordeKill",
+  "TurretKilled",
 ]);
 
 function normalizeName(name?: string): string {
-    return name?.trim().toLowerCase() ?? "";
+    return (name ?? "")
+        .trim()
+        .replace(/\s+/g,"")
+        .split("#")[0]
+        .toLowerCase();
 }
 
 function getNameCandidates(player: LiveClientPlayer): string[] {
@@ -81,6 +86,12 @@ function resolveKillerTeam(
     if(!killerName){
         return "unknown";
     }
+    if (killerName.startsWith("Minion_T100")){
+        return "blue";
+    }
+    if (killerName.startsWith("Minion_T200")){
+        return "red";
+    }
 
     const exactMatch = findExactMatch(killerName, players);
 
@@ -97,7 +108,40 @@ function resolveKillerTeam(
     console.warn(`[WARN] Killer not found in allPlayers: ${killerName}`);
     return "unknown";
 }
+function resolveTowerKillTeam(event: LiveClientEvent): LeagueStudioTeam{
+    const turretKilled = event.TurretKilled;
 
+    if (!turretKilled) {
+        return "unknown";
+    }
+    console.log("[TURRET KILLED]",turretKilled, "killer:",event.KillerName);
+/*
+T1 = ORDER 쪽 타워, 블루팀 포탑이 부서짐 -> 레드팀이 포탑 파괴 점수 획득
+T2 = CHAOS 쪽 타워, ''
+*/
+    if (turretKilled.includes("ORDER") || turretKilled.includes("T1")){
+        return "red";
+    }
+    if (turretKilled.includes("CHAOS") || turretKilled.includes("T2")){
+        return "blue";
+    }
+    return "unknown";
+}
+function resolveObjectiveTeam(
+    event: LiveClientEvent,
+    players: LiveClientPlayer[],
+): LeagueStudioTeam{
+    //타워 이벤트는 TurretKilled 값으로 팀 판단
+    if (event.EventName === "TurretKilled"){
+        const towerTeam = resolveTowerKillTeam(event);
+
+        if (towerTeam !== "unknown") {
+            return towerTeam;
+        }
+        return resolveKillerTeam(event.KillerName, players);
+    }
+    return resolveKillerTeam(event.KillerName, players);
+}
 function isObjectiveRawEventName(
     eventName: string
 ): eventName is ObjectiveRawEventName {
@@ -114,6 +158,8 @@ function toObjectiveType(eventName: ObjectiveRawEventName): ObjectiveType {
             return "herald";
         case "HordeKill":
             return "voidgrub";
+        case "TurretKilled":
+            return "tower";
     }
 }
 
@@ -159,13 +205,14 @@ export function parseObjectiveEvents(
     .filter((event) => isObjectiveRawEventName(event.EventName))
     .map((event) => {
         const rawEventName = event.EventName as ObjectiveRawEventName;
+        const team = resolveObjectiveTeam(event, players);
 
         return {
             eventId: event.EventID,
             eventTime: event.EventTime,
             objective: toObjectiveType(rawEventName),
             rawEventName,
-            team: resolveKillerTeam(event.KillerName, players),
+            team,
             killerName: event.KillerName,
             dragonType: toDragonType(event.DragonType),
             rawDragonType: event.DragonType,
