@@ -6,13 +6,15 @@ export type ObjectiveRawEventName =
     | "DragonKill"
     | "BaronKill"
     | "HeraldKill"
-    | "HordeKill";
+    | "HordeKill"
+    | "TurretKilled";
 
 export type ObjectiveType =
     | "dragon"
     | "baron"
     | "herald"
-    | "voidgrub";
+    | "voidgrub"
+    | "tower";
 
 export type DragonType =
     | "cloud"
