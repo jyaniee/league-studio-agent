@@ -1,18 +1,21 @@
 import { config } from "./config.js";
-import { sendObjectiveEventToServer } from "./serverClient.js";
+import { sendObjectiveEventToServer,sendTowerEventToServer } from "./serverClient.js";
 
 if (config.allowInsecureLocalTls) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 }
 
 import { fetchLiveClientData } from "./liveClient.js";
-import { parseObjectiveEvents } from "./eventParser.js";
+import { parseObjectiveEvents,parseTowerEvents } from "./eventParser.js";
 
 let lastEventId = 0;
 let lastSuccessAt: Date | null = null;
 let lastErrorMessage: string | null = null;
 let totalPollCount = 0;
 let totalObjectiveEventCount = 0;
+let lastObjectiveEventId = 0;
+let lastTowerEventId = 0;
+let totalTowerEventCount = 0;
 
 
 async function pollLiveClientData() {
@@ -24,12 +27,21 @@ async function pollLiveClientData() {
         lastSuccessAt = new Date();
         lastErrorMessage = null;
 
-        const objectiveEvents = parseObjectiveEvents(data.events.Events, data.allPlayers);
-        const newEvents = objectiveEvents.filter(
-        (event) => event.eventId > lastEventId
+        const objectiveEvents = parseObjectiveEvents(
+            data.events.Events,
+            data.allPlayers,
         );
 
-        for (const event of newEvents) {
+        const towerEvents = parseTowerEvents(
+            data.events.Events,
+            data.allPlayers,
+        );
+
+        const newObjectiveEvents = objectiveEvents.filter(
+            (event) => event.eventId > lastObjectiveEventId,
+        );
+
+        for (const event of newObjectiveEvents) {
             totalObjectiveEventCount += 1;
             console.log("[OBJECTIVE EVENT]", event);
 
@@ -42,16 +54,55 @@ async function pollLiveClientData() {
                         event,
                     });
 
-                    console.log(`[SEND] Objective event sent to server: ${event.eventId}`);
+                    console.log(
+                        `[SEND] Objective event sent to server: ${event.eventId}`,
+                    );
                 } catch (error) {
                     console.error(
-                        "[SEND ERROR]",
-                        error instanceof Error ? error.message : String(error)
+                        "[OBJECTIVE SEND ERROR]",
+                        error instanceof Error ? error.message : String(error),
                     );
                 }
             }
 
-            lastEventId = Math.max(lastEventId, event.eventId);
+            lastObjectiveEventId = Math.max(
+                lastObjectiveEventId,
+                event.eventId,
+            );
+        }
+
+        const newTowerEvents = towerEvents.filter(
+            (event) => event.eventId > lastTowerEventId,
+        );
+
+        for (const event of newTowerEvents) {
+            totalTowerEventCount += 1;
+            console.log("[TOWER EVENT]", event);
+
+            if (config.sendToServer) {
+                try {
+                    await sendTowerEventToServer({
+                        serverTowerIngestUrl: config.serverTowerIngestUrl,
+                        matchId: config.matchId,
+                        agentId: config.agentId,
+                        event,
+                    });
+
+                    console.log(
+                        `[SEND] Tower event sent to server: ${event.eventId}`,
+                    );
+                } catch (error) {
+                    console.error(
+                        "[TOWER SEND ERROR]",
+                        error instanceof Error ? error.message : String(error),
+                    );
+                }
+            }
+
+            lastTowerEventId = Math.max(
+                lastTowerEventId,
+                event.eventId,
+            );
         }
     } catch (error) {
         lastErrorMessage = error instanceof Error ? error.message : String(error);

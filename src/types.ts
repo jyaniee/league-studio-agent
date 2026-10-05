@@ -2,19 +2,18 @@ export type LiveClientTeam = "ORDER" | "CHAOS";
 
 export type LeagueStudioTeam = "blue" | "red" | "unknown";
 
+
 export type ObjectiveRawEventName =
     | "DragonKill"
     | "BaronKill"
     | "HeraldKill"
-    | "HordeKill"
-    | "TurretKilled";
+    | "HordeKill";
 
 export type ObjectiveType =
     | "dragon"
     | "baron"
     | "herald"
-    | "voidgrub"
-    | "tower";
+    | "voidgrub";
 
 export type DragonType =
     | "cloud"
@@ -25,6 +24,15 @@ export type DragonType =
     | "chemtech"
     | "elder";
 
+export type AgentTowerEvent = { 
+    eventId: number;
+    eventTime: number;
+    destroyedTeam: LeagueStudioTeam;
+    scoringTeam: LeagueStudioTeam;
+    rawEventName: "TurretKilled"
+    turretKilled?: string;
+    killerName?: string;
+}
 export type AgentObjectiveEvent = {
     eventId: number;
     eventTime: number;

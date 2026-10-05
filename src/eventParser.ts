@@ -7,6 +7,7 @@ import type {
     ObjectiveRawEventName,
     ObjectiveType,
     DragonType, 
+    AgentTowerEvent,
 } from "./types.js";
 import { unescape } from "node:querystring";
 
@@ -15,8 +16,52 @@ const OBJECTIVE_EVENT_NAMES = new Set<ObjectiveRawEventName>([
   "BaronKill",
   "HeraldKill",
   "HordeKill",
-  "TurretKilled",
 ]);
+
+const TOWER_EVENT_NAME = "TurretKilled" as const;
+
+function resolveDestroyedTowerTeam(
+  turretKilled?: string,
+): LeagueStudioTeam {
+  if (!turretKilled) {
+    return "unknown";
+  }
+
+  const value = turretKilled.toUpperCase();
+
+  // ORDER / T2 / T100 = 블루 진영 구조물
+  if (
+    value.includes("ORDER") ||
+    value.includes("T100") ||
+    /(^|[_\s-])T2([_\s-]|$)/.test(value)
+  ) {
+    return "red";
+  }
+
+  // CHAOS / T1 / T200 = 레드 진영 구조물
+  if (
+    value.includes("CHAOS") ||
+    value.includes("T200") ||
+    /(^|[_\s-])T1([_\s-]|$)/.test(value)
+  ) {
+    return "blue";
+  }
+
+  return "unknown";
+}
+
+function getOppositeTeam(team: LeagueStudioTeam): LeagueStudioTeam {
+  if (team === "blue") {
+    return "red";
+  }
+
+  if (team === "red") {
+    return "blue";
+  }
+
+  return "unknown";
+}
+
 
 function normalizeName(name?: string): string {
     return (name ?? "")
@@ -158,8 +203,7 @@ function toObjectiveType(eventName: ObjectiveRawEventName): ObjectiveType {
             return "herald";
         case "HordeKill":
             return "voidgrub";
-        case "TurretKilled":
-            return "tower";
+        
     }
 }
 
@@ -195,6 +239,37 @@ function toBoolean(value?: string): boolean | undefined {
     }
 
     return undefined;
+}
+export function parseTowerEvents(
+  events: LiveClientEvent[],
+  allPlayers: LiveClientPlayer[],
+): AgentTowerEvent[] {
+  return events
+    .filter((event) => event.EventName === TOWER_EVENT_NAME)
+    .map((event) => {
+      const destroyedTeam = resolveDestroyedTowerTeam(event.TurretKilled);
+
+      // TurretKilled 값을 못 읽은 예외 상황에서만 KillerName 기반으로 보정
+      const fallbackScoringTeam = resolveKillerTeam(
+        event.KillerName,
+        allPlayers,
+      );
+
+      const scoringTeam =
+        destroyedTeam === "unknown"
+          ? fallbackScoringTeam
+          : getOppositeTeam(destroyedTeam);
+
+      return {
+        eventId: event.EventID,
+        eventTime: event.EventTime,
+        destroyedTeam,
+        scoringTeam,
+        rawEventName: "TurretKilled",
+        turretKilled: event.TurretKilled,
+        killerName: event.KillerName,
+      };
+    });
 }
 
 export function parseObjectiveEvents(
