@@ -21,6 +21,10 @@ export const config = {
     process.env.SERVER_INGEST_URL ??
     "https://localhost:3001/agent/objective-events",
 
+    serverTowerIngestUrl:
+    process.env.SERVER_TOWER_INGEST_URL ??
+    "http://localhost:3001/agent/tower-events",
+
     matchId: process.env.MATCH_ID ?? "local-test-match",
 
     agentId: process.env.AGENT_ID ?? "player-agent-1",
